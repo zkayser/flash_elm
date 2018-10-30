@@ -1,6 +1,11 @@
 module Home.Page exposing (..)
 
 import Browser.Navigation as Nav
+import Colors.Palette as Palette
+import Element exposing (Element)
+import Element.Background
+import Element.Border as Border
+import Element.Font
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
@@ -26,24 +31,67 @@ initialModel navKey =
   }
 
 -- VIEW
+layout : Model -> Html Msg
+layout model = Element.layout 
+  []
+  ( Element.column [ Element.width Element.fill, Element.spacing 16 ]
+      [ Element.row 
+        [ Element.alignTop
+        , Element.Background.color Palette.primary 
+        , Element.width Element.fill
+        , Element.height (Element.px 64)  ] 
+        [ Element.el 
+          [ Element.centerX
+          , Element.centerY 
+          , Palette.whiteFont
+          ] (Element.text "This is the nav bar") 
+        ]
+      , viewTopics model
+      ]
+  )
+
 view : Model -> List (Html Msg)
 view model =
-  [ div [ class "container" ]
-    [ text model.message,
-      Html.form [ class "form", onSubmit SubmitForm ] 
-        [ input 
-          [ placeholder "Title"
-          , type_ "text"
-          , value model.formTitle
-          , onInput SetFormTitle
-          , autocomplete False
-          ]
-          []
+  [ layout model ]
+
+viewTopics : Model -> Element Msg
+viewTopics model =
+  Element.row
+    [ Element.height (Element.px 256 )
+    , Element.width Element.fill
+    ] 
+    [ Element.el [ Element.width (Element.fillPortion 1)] Element.none
+    , Element.el
+      [ Border.color Palette.primaryLight
+      , Element.height Element.fill
+      , Element.width  (Element.fillPortion 2)
+      , Border.width 3
+      , Element.padding 16
+      ] (Element.el 
+        [ Element.alignTop
+        , Element.centerX
         ]
-    , button [ onClick SubmitForm ] [ text "Submit" ]
-    , div [] [ text model.createdMessage ]
+        (Element.text "Topics go here"))
+    , Element.el
+      [ Element.width (Element.fillPortion 1) ]
+      Element.none
+    , Element.el
+      [ Border.color Palette.secondaryLight
+      , Element.height Element.fill
+      , Element.width (Element.fillPortion 2)
+      , Border.width 3
+      , Element.padding 16
+      ] (Element.el 
+        [ Element.alignTop
+        , Element.centerX 
+        ]
+       (Element.text "Decks go here"))
+    , Element.el [ Element.width (Element.fillPortion 1) ] Element.none
     ]
-  ]
+
+viewDecks : Model -> Element Msg
+viewDecks model =
+  Element.none
 
 -- UPDATE
 
@@ -60,7 +108,6 @@ update msg model =
           newModel =
             { model | formTitle = "" }
       in
-      Debug.log ("Hit SubmitForm message: ")
       ( newModel, Http.send FormSubmitted (submitFormRequest model) )
     SetFormTitle string -> 
       let

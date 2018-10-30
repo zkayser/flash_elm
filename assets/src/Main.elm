@@ -5,6 +5,8 @@ import Browser.Events
 import Browser.Navigation as Nav
 import Element exposing (Element)
 import Element.Background as Background
+import Element.Font as Font
+import Fonts
 import Home.Page
 import Html exposing (..)
 import Html.Events exposing (onClick)
@@ -65,12 +67,14 @@ layout model pageView toMsg subModel =
         [ Element.alignTop
         , Background.color Palette.primary
         , Element.width Element.fill
-        , Element.height (Element.px 64)
+        , Element.height (Element.px 80)
         ]
         [ Element.el
           [ Element.centerX
           , Element.centerY
           , Palette.whiteFont
+          , Fonts.titleSize
+          , Font.medium
           ] ( Element.text "Flash" )
         ]
       , Element.map toMsg (pageView subModel)

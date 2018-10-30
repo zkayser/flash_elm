@@ -31,28 +31,9 @@ initialModel navKey =
   }
 
 -- VIEW
-layout : Model -> Html Msg
-layout model = Element.layout 
-  []
-  ( Element.column [ Element.width Element.fill, Element.spacing 16 ]
-      [ Element.row 
-        [ Element.alignTop
-        , Element.Background.color Palette.primary 
-        , Element.width Element.fill
-        , Element.height (Element.px 64)  ] 
-        [ Element.el 
-          [ Element.centerX
-          , Element.centerY 
-          , Palette.whiteFont
-          ] (Element.text "This is the nav bar") 
-        ]
-      , viewTopics model
-      ]
-  )
-
-view : Model -> List (Html Msg)
-view model =
-  [ layout model ]
+view : Model -> Element Msg
+view model =  
+  viewTopics model
 
 viewTopics : Model -> Element Msg
 viewTopics model =

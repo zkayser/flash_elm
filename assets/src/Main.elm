@@ -3,11 +3,13 @@ module Main exposing (..)
 import Browser
 import Browser.Events
 import Browser.Navigation as Nav
-import Element
+import Element exposing (Element)
+import Element.Background as Background
 import Home.Page
 import Html exposing (..)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (class)
+import Colors.Palette as Palette
 import Url exposing (Url)
 
 type alias Model =
@@ -43,23 +45,37 @@ init flags url navKey =
 view : Model -> Browser.Document Msg
 view model =
   let
-      viewPage toMsg body =
+      viewPage body =
         { title = "Title for page"
-        , body = List.map (Html.map toMsg) body
+        , body = body
         }
   in
   case model.level of
     Redirect ->
-      viewPage (\_ -> Ignored) [ layout model ]
+      viewPage [ layout model (\_ -> Element.none) (\_ -> Ignored) {} ] 
     Home homeModel ->
-      Debug.log ("You are viewing the home page")
-      viewPage HomeMsg ( Home.Page.view homeModel ) 
+      viewPage [ layout model (Home.Page.view) HomeMsg homeModel ]
 
-layout : Model -> Html Msg
-layout model =
-  Element.layout []
-    ( Element.row [] 
-       [(Element.text "Hi there")] )
+layout : Model -> (subModel -> Element msg) -> (msg -> Msg) -> subModel -> Html Msg
+layout model pageView toMsg subModel =
+  Element.layout 
+  []
+  ( Element.column [ Element.width Element.fill, Element.spacing 16 ] 
+      [ Element.row
+        [ Element.alignTop
+        , Background.color Palette.primary
+        , Element.width Element.fill
+        , Element.height (Element.px 64)
+        ]
+        [ Element.el
+          [ Element.centerX
+          , Element.centerY
+          , Palette.whiteFont
+          ] ( Element.text "Flash" )
+        ]
+      , Element.map toMsg (pageView subModel)
+      ] 
+  )
 
 -- UPDATE
 

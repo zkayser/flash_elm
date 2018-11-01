@@ -2,22 +2,30 @@ module Home.Page exposing (..)
 
 import Browser.Navigation as Nav
 import Colors.Palette as Palette
-import Element exposing (Element)
-import Element.Background
+import Element exposing (Element, DeviceClass(..))
+import Element.Background as Background
 import Element.Border as Border
-import Element.Font
+import Element.Font as Font
+import Element.Input as Input
+import Fonts
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Http
 import Json.Decode
 import Json.Encode
+import Views
 
 type alias Model = 
   { message : String 
   , formTitle : String
   , createdMessage : String
   , key : Nav.Key
+  }
+
+type alias Config =
+  { title : String
+  , borderColor : Element.Color
   }
 
 type alias Topic = { topic : String }
@@ -31,48 +39,73 @@ initialModel navKey =
   }
 
 -- VIEW
-view : Model -> Element Msg
-view model =  
-  viewTopics model
+view : Model -> DeviceClass ->  Element Msg
+view model deviceClass =  
+  case deviceClass of
+    Phone -> viewPageLayout model
+    Tablet -> viewPageLayout model
+    Desktop -> viewPageLayout model
+    BigDesktop -> viewPageLayout model
 
-viewTopics : Model -> Element Msg
-viewTopics model =
-  Element.row
-    [ Element.height (Element.px 256 )
+viewPageLayout : Model -> Element Msg
+viewPageLayout model =
+  Element.wrappedRow
+    [ Element.height (Element.px 512)
     , Element.width Element.fill
+    , Element.padding 25
+    , Element.spacing 50
     ] 
-    [ Element.el [ Element.width (Element.fillPortion 1)] Element.none
-    , Element.el
-      [ Border.color Palette.primaryLight
-      , Element.height Element.fill
-      , Element.width  (Element.fillPortion 2)
-      , Border.width 3
-      , Element.padding 16
-      ] (Element.el 
-        [ Element.alignTop
-        , Element.centerX
-        ]
-        (Element.text "Topics go here"))
-    , Element.el
-      [ Element.width (Element.fillPortion 1) ]
-      Element.none
-    , Element.el
-      [ Border.color Palette.secondaryLight
-      , Element.height Element.fill
-      , Element.width (Element.fillPortion 2)
-      , Border.width 3
-      , Element.padding 16
-      ] (Element.el 
-        [ Element.alignTop
-        , Element.centerX 
-        ]
-       (Element.text "Decks go here"))
-    , Element.el [ Element.width (Element.fillPortion 1) ] Element.none
+    [ 
+     viewContainer model { borderColor = Palette.primaryLight, title = "Topics" }
+    , viewContainer model { borderColor = Palette.secondary, title = "Decks" }
     ]
 
-viewDecks : Model -> Element Msg
-viewDecks model =
-  Element.none
+viewContainer : Model -> Config -> Element Msg
+viewContainer model config =
+    Element.row
+      [ Background.color config.borderColor
+        , Element.height Element.fill
+        , Element.width (Element.fillPortion 2)
+        , Border.shadow {
+            offset = ( 2.0, 2.0 )
+          , size = 2.0
+          , blur = 4.0
+          , color = Element.rgba 0.2 0.2 0.2 0.5
+          }
+        , Element.padding 16
+      ]  
+      [ Element.row 
+        [ Element.height (Element.px 48)
+        , Element.width Element.fill
+        , Element.alignTop
+        ]
+        [ Element.el
+          [ Element.centerY
+          , Element.centerX
+          , Fonts.titleSize
+          , Font.medium
+          , Palette.whiteFont
+          ] (Element.text config.title ) 
+        , Input.button 
+          [ Background.color Palette.secondaryDark
+          , Border.shadow
+            { offset = ( 2.0, 2.0 )
+            , size = 1.0
+            , blur = 4.0
+            , color = Element.rgba 0.2 0.2 0.2 0.5
+            }
+          , Element.centerY
+          , Element.alignRight
+          , Border.rounded 100
+          , Element.moveDown 1.5
+          , Palette.whiteFont
+          ] 
+          { onPress = Just AddTopic
+          , label = Element.html ( Html.i [ class "material-icons" ] [ Html.text "add" ] )
+          }
+        ]
+      ] 
+
 
 -- UPDATE
 
@@ -80,6 +113,7 @@ type Msg
   = SubmitForm
   | FormSubmitted (Result Http.Error String)
   | SetFormTitle String
+  | AddTopic
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -105,6 +139,9 @@ update msg model =
                 createdMessage = "You created a new topic: " ++ payload } 
         in
         ( newModel, Cmd.none )
+    AddTopic ->
+      Debug.log ("Add topic button pressed")
+      ( model, Cmd.none )
 
 -- REQUEST
 submitFormRequest : Model -> Http.Request String

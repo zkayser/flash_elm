@@ -3,8 +3,9 @@ module Main exposing (..)
 import Browser
 import Browser.Events
 import Browser.Navigation as Nav
-import Element exposing (Element)
+import Element exposing (Element, Device, DeviceClass(..))
 import Element.Background as Background
+import Element.Events as Events
 import Element.Font as Font
 import Fonts
 import Home.Page
@@ -15,7 +16,8 @@ import Colors.Palette as Palette
 import Url exposing (Url)
 
 type alias Model =
-  { window : WindowSize
+  { deviceClass : DeviceClass
+  , navBarDropdownState : DropdownState 
   , level : ModelLevel
   }
 
@@ -28,6 +30,10 @@ type ModelLevel
   = Redirect
   | Home Home.Page.Model
 
+type DropdownState
+  = Open
+  | Closed
+
 type alias Flags = WindowSize
 
 -- MODEL
@@ -35,8 +41,10 @@ type alias Flags = WindowSize
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url navKey =
   let
+    device = Element.classifyDevice flags
     model =
-      { window = flags
+      { deviceClass = device.class
+      , navBarDropdownState = Closed
       , level = ( Home <| Home.Page.initialModel navKey)
       }
   in
@@ -54,38 +62,60 @@ view model =
   in
   case model.level of
     Redirect ->
-      viewPage [ layout model (\_ -> Element.none) (\_ -> Ignored) {} ] 
+      viewPage [ layout model (\_ _ -> Element.none) (\_ -> Ignored) {} ] 
     Home homeModel ->
       viewPage [ layout model (Home.Page.view) HomeMsg homeModel ]
 
-layout : Model -> (subModel -> Element msg) -> (msg -> Msg) -> subModel -> Html Msg
+layout : Model -> (subModel -> DeviceClass -> Element msg) -> (msg -> Msg) -> subModel -> Html Msg
 layout model pageView toMsg subModel =
   Element.layout 
   []
   ( Element.column [ Element.width Element.fill, Element.spacing 16 ] 
-      [ Element.row
-        [ Element.alignTop
-        , Background.color Palette.primary
-        , Element.width Element.fill
-        , Element.height (Element.px 80)
-        ]
-        [ Element.el
-          [ Element.centerX
-          , Element.centerY
-          , Palette.whiteFont
-          , Fonts.titleSize
-          , Font.medium
-          ] ( Element.text "Flash" )
-        ]
-      , Element.map toMsg (pageView subModel)
+      [ viewNavBar model 
+      , Element.map toMsg (pageView subModel model.deviceClass)
       ] 
   )
+
+viewNavBar : Model -> Element Msg
+viewNavBar model =
+  Element.row
+    [ Element.alignTop
+    , Background.color Palette.primary
+    , Element.width Element.fill
+    , Element.height (Element.px 80)
+    , Element.padding 16
+    ]
+    [ Element.el
+      [ Element.centerX
+      , Element.centerY
+      , Palette.whiteFont
+      , Fonts.titleSize
+      , Font.medium  
+      ] ( Element.text "Flash")
+    , viewNavBarLinks model
+    ]
+
+viewNavBarLinks : Model -> Element Msg
+viewNavBarLinks model =
+  case model.deviceClass of
+    Phone ->
+      Element.el
+        [ Element.alignRight
+        , Element.centerY
+        , Palette.whiteFont
+        , Fonts.titleSize
+        , Font.bold
+        , Events.onClick ToggleNavDropdown
+        ] (Element.html (i [ class "material-icons"] [ Html.text "menu"] ))
+    _ -> 
+      Element.none
 
 -- UPDATE
 
 type Msg 
   = NoOp
   | Ignored
+  | ToggleNavDropdown
   | WindowResize Int Int
   | HomeMsg Home.Page.Msg
 
@@ -94,11 +124,19 @@ update msg model =
   case (msg, model.level) of
     ( NoOp, _ ) -> ( model, Cmd.none )
     ( Ignored, _ ) -> ( model, Cmd.none )
+    ( ToggleNavDropdown, _ ) ->
+      let
+          newDropdownState =
+            case model.navBarDropdownState of
+              Open -> Closed
+              Closed -> Open
+      in
+      ( { model | navBarDropdownState = newDropdownState }, Cmd.none )
     ( WindowResize width height, _ ) ->
       let 
           windowSize = { width = width, height = height }
       in
-      ( { model | window = windowSize }, Cmd.none )
+      ( { model | deviceClass = getDeviceClass windowSize }, Cmd.none )
     ( HomeMsg subMsg, Home subModel ) -> 
       Home.Page.update subMsg subModel
         |> updateWith Home HomeMsg model
@@ -122,6 +160,11 @@ onUrlChange : Url -> Msg
 onUrlChange url =
   NoOp
 
+-- UTILITY FUNCTIONS
+getDeviceClass : WindowSize -> DeviceClass
+getDeviceClass =
+  Element.classifyDevice >> .class
+
 main =
   Browser.application {
       init = init
@@ -131,4 +174,3 @@ main =
     , onUrlRequest = onUrlRequest
     , onUrlChange = onUrlChange
     }
-

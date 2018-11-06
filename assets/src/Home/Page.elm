@@ -22,8 +22,11 @@ type alias Model =
   , formTitle : String
   , createdMessage : String
   , key : Nav.Key
-  , topics : List Topic
+  , topics : TopicPresenter
   }
+
+type TopicPresenter =
+  TopicPresenter Int Int (List Topic)
 
 type alias Config =
   { title : String
@@ -35,11 +38,19 @@ type alias Topic = { topic : String }
 
 initialModel : Nav.Key -> Model
 initialModel navKey = 
+  let
+    topicList =
+      [   { topic = "The first topic" }
+        , { topic = "The second topic" } 
+        , { topic = "The third topic" }
+      ]
+    initialLength = List.length topicList
+  in
   { message = "You are now on the home page." 
   , formTitle = ""
   , createdMessage = ""
   , key = navKey
-  , topics = [ { topic = "The first topic" }, { topic = "The second topic" } ]
+  , topics = TopicPresenter 0 initialLength topicList 
   }
 
 -- VIEW
@@ -167,8 +178,15 @@ viewContainerBody model config =
 topicText : Model -> String
 topicText model =
   case model.topics of
-    [] -> "You don't have any topics yet."
-    topicRecord :: topics -> topicRecord.topic
+    TopicPresenter _ 0 _ -> "You don't have any topics yet."
+    TopicPresenter current l list ->
+      viewTopics <| TopicPresenter current l list 
+
+viewTopics : TopicPresenter -> String
+viewTopics (TopicPresenter current length list) =
+  case List.drop current list of
+    head :: _ -> head.topic
+    _ -> "Something is weird, index is: " ++ (String.fromInt current)
 
 -- UPDATE
 
@@ -205,14 +223,25 @@ update msg model =
         in
         ( newModel, Cmd.none )
     AddTopic ->
-      Debug.log ("Add topic button pressed")
       ( model, Cmd.none )
     ClickedLeft ->
-      Debug.log ("Clicked on the left chevron button")
-      ( model, Cmd.none )
+      let
+        newTopics =
+          case model.topics of
+            TopicPresenter _ 0 _ -> model.topics
+            TopicPresenter current length list ->
+              (changeCurrentTopic (-) current length) length list
+      in
+      ( { model | topics = newTopics }, Cmd.none )
     ClickedRight ->
-      Debug.log ("Clicked on the right chevron button")
-      ( model, Cmd.none )
+      let
+        newTopics =
+          case model.topics of
+            TopicPresenter _ 0 _ -> model.topics
+            TopicPresenter current length list ->
+              (changeCurrentTopic (+) current length) length list
+      in
+      ( { model | topics = newTopics }, Cmd.none )
 
 -- REQUEST
 submitFormRequest : Model -> Http.Request String
@@ -234,4 +263,13 @@ apiUrl : String
 apiUrl =
   "http://localhost:4000/api"
 
-
+changeCurrentTopic : (Int -> Int -> Int) -> Int -> Int -> (Int -> List Topic -> TopicPresenter)
+changeCurrentTopic subtractOrAdd current length =
+  case subtractOrAdd current 1 of
+    newPosition ->
+      if newPosition < 0 then
+        TopicPresenter (length - 1)
+      else if newPosition == length then
+        TopicPresenter 0
+      else 
+        TopicPresenter newPosition

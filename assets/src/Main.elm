@@ -3,6 +3,7 @@ module Main exposing (..)
 import Browser
 import Browser.Events
 import Browser.Navigation as Nav
+import Colors.Palette as Palette
 import Element exposing (Element, Device, DeviceClass(..))
 import Element.Background as Background
 import Element.Events as Events
@@ -12,7 +13,7 @@ import Home.Page
 import Html exposing (..)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (class)
-import Colors.Palette as Palette
+import Topics.Request as Request
 import Url exposing (Url)
 
 type alias Model =
@@ -48,7 +49,7 @@ init flags url navKey =
       , level = ( Home <| Home.Page.initialModel navKey)
       }
   in
-  ( model, Cmd.none )
+  ( model, Cmd.map HomeMsg (Request.fetchTopics Home.Page.TopicsReceived) )
 
 -- VIEW
 

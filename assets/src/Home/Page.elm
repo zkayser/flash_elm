@@ -38,19 +38,11 @@ type alias Topic = { topic : String }
 
 initialModel : Nav.Key -> Model
 initialModel navKey = 
-  let
-    topicList =
-      [   { topic = "The first topic" }
-        , { topic = "The second topic" } 
-        , { topic = "The third topic" }
-      ]
-    initialLength = List.length topicList
-  in
   { message = "You are now on the home page." 
   , formTitle = ""
   , createdMessage = ""
   , key = navKey
-  , topics = TopicPresenter 0 initialLength topicList 
+  , topics = TopicPresenter 0 0 []
   }
 
 -- VIEW
@@ -70,17 +62,11 @@ viewPageLayout model =
     , Element.padding 25
     , Element.spacing 50
     ] 
-    [ 
-     viewContainer model 
-      { borderColor = Palette.primaryLight
-      , title = "Topics" 
-      , addButtonColor = Palette.secondaryDark
-      }
-    , viewContainer model 
-      { borderColor = Palette.secondary
-      , title = "Decks" 
-      , addButtonColor = Palette.primaryDark
-      }
+    [ viewContainer model 
+        { borderColor = Palette.primaryLight
+        , title = "Topics" 
+        , addButtonColor = Palette.secondaryDark
+        }
     ]
 
 viewContainer : Model -> Config -> Element Msg
@@ -88,7 +74,7 @@ viewContainer model config =
     Element.column
       [ Background.color config.borderColor
         , Element.height Element.fill
-        , Element.width (Element.fillPortion 2)
+        , Element.width Element.fill
         , Border.shadow {
             offset = ( 2.0, 2.0 )
           , size = 2.0
@@ -186,7 +172,9 @@ viewTopics : TopicPresenter -> String
 viewTopics (TopicPresenter current length list) =
   case List.drop current list of
     head :: _ -> head.topic
-    _ -> "Something is weird, index is: " ++ (String.fromInt current)
+    _ -> 
+      Debug.log ("This should never happen")
+      ""
 
 -- UPDATE
 
@@ -195,6 +183,7 @@ type Msg
   | FormSubmitted (Result Http.Error String)
   | SetFormTitle String
   | AddTopic
+  | TopicsReceived (Result Http.Error (List Topic))
   | ClickedLeft
   | ClickedRight
 
@@ -242,6 +231,11 @@ update msg model =
               (changeCurrentTopic (+) current length) length list
       in
       ( { model | topics = newTopics }, Cmd.none )
+    TopicsReceived (Ok topics) ->
+      ( updateTopics model topics, Cmd.none )
+    TopicsReceived (Err error) ->
+      ( model, Cmd.none )
+
 
 -- REQUEST
 submitFormRequest : Model -> Http.Request String
@@ -273,3 +267,11 @@ changeCurrentTopic subtractOrAdd current length =
         TopicPresenter 0
       else 
         TopicPresenter newPosition
+
+updateTopics : Model -> List Topic -> Model
+updateTopics model topics =
+  let
+      newTopics =
+        TopicPresenter 0 (List.length topics) topics
+  in
+  { model | topics = newTopics }

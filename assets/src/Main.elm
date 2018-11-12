@@ -49,7 +49,7 @@ init flags url navKey =
       , level = ( Home <| Home.Page.initialModel navKey)
       }
   in
-  ( model, Cmd.map HomeMsg (Request.fetchTopics Home.Page.TopicsReceived) )
+  ( model, Cmd.map HomeMsg Home.Page.fetchTopics )
 
 -- VIEW
 
@@ -151,7 +151,17 @@ updateWith toModelLevel toMsg model ( subModel, subCmd ) =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Browser.Events.onResize WindowResize
+  Sub.batch 
+    [ Browser.Events.onResize WindowResize 
+    , subscriptionsForPage model
+    ]
+
+subscriptionsForPage : Model -> Sub Msg
+subscriptionsForPage model =
+  case model.level of
+    Home homeModel ->
+      Sub.map HomeMsg (Home.Page.subscriptions homeModel)
+    _ -> Sub.none
 
 onUrlRequest : Browser.UrlRequest -> Msg
 onUrlRequest request =

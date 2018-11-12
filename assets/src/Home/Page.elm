@@ -1,5 +1,6 @@
 module Home.Page exposing (..)
 
+import Animation exposing (px, turn)
 import Browser.Navigation as Nav
 import Colors.Palette as Palette
 import Element exposing (Element, DeviceClass(..))
@@ -15,14 +16,19 @@ import Html.Attributes as Attrs exposing (..)
 import Http
 import Json.Decode
 import Json.Encode
+import Topics.Request as Request
+import RequestStatus exposing(Status(..))
 import Views
+import Views.Spinner as Spinner
 
 type alias Model = 
   { message : String 
   , formTitle : String
   , createdMessage : String
   , key : Nav.Key
-  , topics : TopicPresenter
+  , topics : Status Http.Error TopicPresenter 
+  , style : Animation.State
+  , spinner : Animation.State
   }
 
 type TopicPresenter =
@@ -42,7 +48,9 @@ initialModel navKey =
   , formTitle = ""
   , createdMessage = ""
   , key = navKey
-  , topics = TopicPresenter 0 0 []
+  , topics = Loading
+  , style = Animation.style [ Animation.opacity 0.3 ]
+  , spinner = Spinner.init
   }
 
 -- VIEW
@@ -59,7 +67,7 @@ viewPageLayout model =
   Element.wrappedRow
     [ Element.height (Element.px 512)
     , Element.width Element.fill
-    , Element.padding 25
+    , Element.paddingXY 100 25
     , Element.spacing 50
     ] 
     [ viewContainer model 
@@ -124,6 +132,14 @@ viewContainerTitleRow model config =
 
 viewContainerBody : Model -> Config -> Element Msg
 viewContainerBody model config =
+  case model.topics of
+    Loading -> viewLoading model
+    Errored httpError -> viewError httpError
+    Loaded _ -> viewTopicsBody model
+    _ -> Element.none
+
+viewTopicsBody : Model -> Element Msg
+viewTopicsBody model =
   Element.row
     [ Element.height (Element.px 48)
     , Element.width Element.fill
@@ -143,11 +159,11 @@ viewContainerBody model config =
           , Attrs.style "font-size" "3rem"
           ] [ Html.text "chevron_left" ] ) )
     , Element.el 
-      [ Element.centerX
+      ([ Element.centerX
       , Palette.whiteFont
       , Font.size 24
-      , Font.medium
-      ] (Element.text (topicText model))
+      , Font.medium 
+      ] ++ List.map Element.htmlAttribute (Animation.render model.style)) (Element.text (topicText model))
     , Element.el
       [ Element.alignRight
       , Palette.whiteFont
@@ -164,9 +180,12 @@ viewContainerBody model config =
 topicText : Model -> String
 topicText model =
   case model.topics of
-    TopicPresenter _ 0 _ -> "You don't have any topics yet."
-    TopicPresenter current l list ->
-      viewTopics <| TopicPresenter current l list 
+    Loaded topicPresenter ->
+      case topicPresenter of
+        TopicPresenter _ 0 _ -> "You don't have any topics yet."
+        TopicPresenter current l list ->
+          viewTopics <| TopicPresenter current l list 
+    _ -> ""
 
 viewTopics : TopicPresenter -> String
 viewTopics (TopicPresenter current length list) =
@@ -176,12 +195,27 @@ viewTopics (TopicPresenter current length list) =
       Debug.log ("This should never happen")
       ""
 
+viewError : Http.Error -> Element Msg
+viewError httpError =
+  Element.el 
+    [ Element.centerX
+    , Element.centerY
+    ] (Element.text "Could not load topics")
+
+viewLoading : Model -> Element Msg
+viewLoading model =
+  Element.el
+    [ Element.centerX
+    , Element.centerY 
+    ] (Spinner.view model.spinner)
+
 -- UPDATE
 
 type Msg
   = SubmitForm
   | FormSubmitted (Result Http.Error String)
   | SetFormTitle String
+  | Animate Animation.Msg
   | AddTopic
   | TopicsReceived (Result Http.Error (List Topic))
   | ClickedLeft
@@ -212,29 +246,67 @@ update msg model =
         in
         ( newModel, Cmd.none )
     AddTopic ->
-      ( model, Cmd.none )
+      let
+            newStyle =
+              Animation.interrupt
+                [ Animation.toWith
+                  (Animation.easing
+                      { duration = 2000.0 
+                      , ease = (\x -> x ^ 2.0) 
+                      }
+                  )
+                  [ Animation.opacity 1.0 ]
+                ]
+                model.style
+      in
+      ( { model | style = newStyle }, Cmd.none )
     ClickedLeft ->
       let
         newTopics =
           case model.topics of
-            TopicPresenter _ 0 _ -> model.topics
-            TopicPresenter current length list ->
-              (changeCurrentTopic (-) current length) length list
+            Loaded presenter ->
+              case presenter of
+                TopicPresenter _ 0 _ -> model.topics
+                TopicPresenter current length list ->
+                  Loaded <| (changeCurrentTopic (-) current length) length list
+            _ -> model.topics
       in
       ( { model | topics = newTopics }, Cmd.none )
     ClickedRight ->
       let
         newTopics =
           case model.topics of
-            TopicPresenter _ 0 _ -> model.topics
-            TopicPresenter current length list ->
-              (changeCurrentTopic (+) current length) length list
+            Loaded presenter ->
+              case presenter of
+                TopicPresenter _ 0 _ -> model.topics
+                TopicPresenter current length list ->
+                  Loaded <| (changeCurrentTopic (+) current length) length list
+            _ -> model.topics 
       in
       ( { model | topics = newTopics }, Cmd.none )
     TopicsReceived (Ok topics) ->
       ( updateTopics model topics, Cmd.none )
     TopicsReceived (Err error) ->
-      ( model, Cmd.none )
+      let
+        newTopics =
+          Errored error
+      in
+      ( { model | topics = newTopics } , Cmd.none )
+    Animate animMsg ->
+      let
+          newModel =
+            { model |
+              style = Animation.update animMsg model.style
+            , spinner = Spinner.update model animMsg
+            }
+      in
+      ( newModel, Cmd.none )
+
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Animation.subscription Animate [ model.style, model.spinner ]
 
 
 -- REQUEST
@@ -250,6 +322,10 @@ submitFormRequest model =
   in
   Json.Decode.field "topic" Json.Decode.string
     |> Http.post (apiUrl ++ "/topics") jsonBody
+
+fetchTopics : Cmd Msg
+fetchTopics =
+  Request.fetchTopics TopicsReceived
 
 -- HELPERS & DATA (a lot of this would probably go into another module)
 
@@ -274,4 +350,4 @@ updateTopics model topics =
       newTopics =
         TopicPresenter 0 (List.length topics) topics
   in
-  { model | topics = newTopics }
+  { model | topics = Loaded newTopics }

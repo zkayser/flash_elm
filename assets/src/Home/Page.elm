@@ -24,7 +24,6 @@ import Views.Spinner as Spinner
 type alias Model = 
   { key : Nav.Key
   , topics : Status Http.Error TopicPresenter 
-  , style : Animation.State
   , spinner : Animation.State
   }
 
@@ -43,7 +42,6 @@ initialModel : Nav.Key -> Model
 initialModel navKey = 
   { key = navKey
   , topics = Loading
-  , style = Animation.style [ Animation.opacity 0.3 ]
   , spinner = Spinner.init
   }
 
@@ -153,11 +151,11 @@ viewTopicsBody model =
           , Attrs.style "font-size" "3rem"
           ] [ Html.text "chevron_left" ] ) )
     , Element.el 
-      ([ Element.centerX
+      [ Element.centerX
       , Palette.whiteFont
       , Font.size 24
       , Font.medium 
-      ] ++ List.map Element.htmlAttribute (Animation.render model.style)) (viewTopics model)
+      ] (viewTopics model)
     , Element.el
       [ Element.alignRight
       , Palette.whiteFont
@@ -212,20 +210,7 @@ update msg model =
     SubmitForm -> 
       ( model, Cmd.none )
     AddTopic ->
-      let
-            newStyle =
-              Animation.interrupt
-                [ Animation.toWith
-                  (Animation.easing
-                      { duration = 2000.0 
-                      , ease = (\x -> x ^ 2.0) 
-                      }
-                  )
-                  [ Animation.opacity 1.0 ]
-                ]
-                model.style
-      in
-      ( { model | style = newStyle }, Cmd.none )
+      ( model, Cmd.none )
     Clicked direction ->
       let
           operation =
@@ -253,10 +238,7 @@ update msg model =
     Animate animMsg ->
       let
           newModel =
-            { model |
-              style = Animation.update animMsg model.style
-            , spinner = Spinner.update model animMsg
-            }
+            { model | spinner = Spinner.update model animMsg }
       in
       ( newModel, Cmd.none )
 
@@ -264,7 +246,7 @@ update msg model =
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Animation.subscription Animate [ model.style, model.spinner ]
+  Animation.subscription Animate [ model.spinner ]
 
 
 -- REQUEST

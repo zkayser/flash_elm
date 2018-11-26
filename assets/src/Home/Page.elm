@@ -22,10 +22,7 @@ import Views
 import Views.Spinner as Spinner
 
 type alias Model = 
-  { message : String 
-  , formTitle : String
-  , createdMessage : String
-  , key : Nav.Key
+  { key : Nav.Key
   , topics : Status Http.Error TopicPresenter 
   , style : Animation.State
   , spinner : Animation.State
@@ -44,10 +41,7 @@ type alias Topic = { topic : String }
 
 initialModel : Nav.Key -> Model
 initialModel navKey = 
-  { message = "You are now on the home page." 
-  , formTitle = ""
-  , createdMessage = ""
-  , key = navKey
+  { key = navKey
   , topics = Loading
   , style = Animation.style [ Animation.opacity 0.3 ]
   , spinner = Spinner.init
@@ -133,7 +127,7 @@ viewContainerTitleRow model config =
 viewContainerBody : Model -> Config -> Element Msg
 viewContainerBody model config =
   case model.topics of
-    Loading -> viewLoading model
+    Loading -> Spinner.view model
     Errored httpError -> viewError httpError
     Loaded _ -> viewTopicsBody model
     _ -> Element.none
@@ -151,7 +145,7 @@ viewTopicsBody model =
       [ Element.alignLeft
       , Palette.whiteFont
       , Font.semiBold
-      , Events.onClick ClickedLeft 
+      , Events.onClick <| Clicked Left 
       , Element.pointer
       ] (Element.html ( 
         Html.i 
@@ -163,13 +157,13 @@ viewTopicsBody model =
       , Palette.whiteFont
       , Font.size 24
       , Font.medium 
-      ] ++ List.map Element.htmlAttribute (Animation.render model.style)) (Element.text (topicText model))
+      ] ++ List.map Element.htmlAttribute (Animation.render model.style)) (viewTopics model)
     , Element.el
       [ Element.alignRight
       , Palette.whiteFont
       , Font.semiBold
       , Element.pointer
-      , Events.onClick ClickedRight
+      , Events.onClick <| Clicked Right
       ] (Element.html ( 
         Html.i 
           [ class "material-icons" 
@@ -177,18 +171,18 @@ viewTopicsBody model =
           ] [ Html.text "chevron_right" ] ) ) 
     ]
 
-topicText : Model -> String
-topicText model =
-  case model.topics of
-    Loaded topicPresenter ->
-      case topicPresenter of
-        TopicPresenter _ 0 _ -> "You don't have any topics yet."
-        TopicPresenter current l list ->
-          viewTopics <| TopicPresenter current l list 
-    _ -> ""
+viewTopic : TopicPresenter -> Element Msg
+viewTopic topicPresenter =
+  case topicPresenter of
+    TopicPresenter _ 0 _ -> Element.text "You don't have any topics yet."
+    TopicPresenter current l list -> Element.text (viewTopicTitle <| TopicPresenter current l list)
 
-viewTopics : TopicPresenter -> String
-viewTopics (TopicPresenter current length list) =
+viewTopics : Model -> Element Msg
+viewTopics model =
+  RequestStatus.viewResource model.topics model viewError viewTopic
+
+viewTopicTitle : TopicPresenter -> String
+viewTopicTitle (TopicPresenter current length list) =
   case List.drop current list of
     head :: _ -> head.topic
     _ -> 
@@ -202,49 +196,21 @@ viewError httpError =
     , Element.centerY
     ] (Element.text "Could not load topics")
 
-viewLoading : Model -> Element Msg
-viewLoading model =
-  Element.el
-    [ Element.centerX
-    , Element.centerY 
-    ] (Spinner.view model.spinner)
-
 -- UPDATE
+type Direction = Right | Left
 
 type Msg
   = SubmitForm
-  | FormSubmitted (Result Http.Error String)
-  | SetFormTitle String
   | Animate Animation.Msg
   | AddTopic
   | TopicsReceived (Result Http.Error (List Topic))
-  | ClickedLeft
-  | ClickedRight
+  | Clicked Direction
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     SubmitForm -> 
-      let
-          newModel =
-            { model | formTitle = "" }
-      in
-      ( newModel, Http.send FormSubmitted (submitFormRequest model) )
-    SetFormTitle string -> 
-      let
-          newModel =
-            { model | formTitle = string }
-      in
-      ( newModel, Cmd.none )
-    FormSubmitted (Err error) ->
-        ( model, Cmd.none)
-    FormSubmitted (Ok payload) ->
-        let
-            newModel =
-              { model |
-                createdMessage = "You created a new topic: " ++ payload } 
-        in
-        ( newModel, Cmd.none )
+      ( model, Cmd.none )
     AddTopic ->
       let
             newStyle =
@@ -260,28 +226,20 @@ update msg model =
                 model.style
       in
       ( { model | style = newStyle }, Cmd.none )
-    ClickedLeft ->
+    Clicked direction ->
       let
-        newTopics =
-          case model.topics of
-            Loaded presenter ->
-              case presenter of
-                TopicPresenter _ 0 _ -> model.topics
-                TopicPresenter current length list ->
-                  Loaded <| (changeCurrentTopic (-) current length) length list
-            _ -> model.topics
-      in
-      ( { model | topics = newTopics }, Cmd.none )
-    ClickedRight ->
-      let
-        newTopics =
-          case model.topics of
-            Loaded presenter ->
-              case presenter of
-                TopicPresenter _ 0 _ -> model.topics
-                TopicPresenter current length list ->
-                  Loaded <| (changeCurrentTopic (+) current length) length list
-            _ -> model.topics 
+          operation =
+            case direction of
+              Right -> (+)
+              Left -> (-)
+          newTopics =
+            case model.topics of
+              Loaded presenter ->
+                case presenter of
+                  TopicPresenter _ 0 _ -> model.topics
+                  TopicPresenter current length list ->
+                    Loaded <| (changeCurrentTopic operation current length) length list
+              _ -> model.topics
       in
       ( { model | topics = newTopics }, Cmd.none )
     TopicsReceived (Ok topics) ->
@@ -310,19 +268,6 @@ subscriptions model =
 
 
 -- REQUEST
-submitFormRequest : Model -> Http.Request String
-submitFormRequest model =
-  let
-      jsonBody =
-        Json.Encode.object
-          [ ( "name", Json.Encode.string model.formTitle ) ]
-          |> Http.jsonBody
-      _ =
-        Debug.log ("Http.post: ") (Http.post <| apiUrl ++ "/topics")
-  in
-  Json.Decode.field "topic" Json.Decode.string
-    |> Http.post (apiUrl ++ "/topics") jsonBody
-
 fetchTopics : Cmd Msg
 fetchTopics =
   Request.fetchTopics TopicsReceived

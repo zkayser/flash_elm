@@ -1,19 +1,21 @@
 module RequestStatus exposing (..)
 
+import Animation
+import Element exposing (Element)
+import Views.Spinner as Spinner
+
 type Status error success
   = NotRequested
   | Loading
   | Loaded success
   | Errored error
 
-getData : Status error success -> Maybe success
-getData status =
-  case status of
-    Loaded success -> Just success
-    _ -> Nothing
+type alias LoadingView r = { r | spinner : Animation.State }
 
-getError : Status error success -> Maybe error
-getError status =
+viewResource : Status error success -> LoadingView r -> (error -> Element msg) -> (success -> Element msg) -> Element msg
+viewResource status loadingView errorViewFunction successViewFunction =
   case status of
-    Errored error -> Just error
-    _ -> Nothing
+    NotRequested -> Element.none
+    Loading -> Spinner.view loadingView
+    Loaded success -> successViewFunction success
+    Errored error -> errorViewFunction error

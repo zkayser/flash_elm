@@ -5,8 +5,15 @@ import Colors.Palette as Palette
 import Element exposing (Element)
 import Element.Border as Border
 
-view : Animation.State -> Element msg
-view animation =
+view : { r | spinner : Animation.State } -> Element msg
+view animationModel =
+  Element.el
+    [ Element.centerX
+    , Element.centerY
+    ] (viewSpinner animationModel.spinner)
+
+viewSpinner : Animation.State -> Element msg
+viewSpinner animation =
   Element.el
     ([ Element.height (Element.px 20)
     , Element.width (Element.px 20)

@@ -57,7 +57,7 @@ view : Model -> Browser.Document Msg
 view model =
   let
       viewPage body =
-        { title = "Title for page"
+        { title = "Flash"
         , body = body
         }
   in

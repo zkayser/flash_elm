@@ -23,18 +23,12 @@ import Views.Spinner as Spinner
 
 type alias Model = 
   { key : Nav.Key
-  , topics : Status Http.Error TopicPresenter 
+  , topics : Status Http.Error (List Topic)
   , spinner : Animation.State
+  , currentlyViewing : FlashData
   }
 
-type TopicPresenter =
-  TopicPresenter Int Int (List Topic)
-
-type alias Config =
-  { title : String
-  , borderColor : Element.Color
-  , addButtonColor : Element.Color
-  }
+type FlashData = Topics | Decks
 
 type alias Topic = { topic : String }
 
@@ -43,6 +37,7 @@ initialModel navKey =
   { key = navKey
   , topics = Loading
   , spinner = Spinner.init
+  , currentlyViewing = Topics
   }
 
 -- VIEW
@@ -57,135 +52,51 @@ view model deviceClass =
 viewPageLayout : Model -> Element Msg
 viewPageLayout model =
   Element.wrappedRow
-    [ Element.height (Element.px 512)
+    [ Element.height (Element.px 256)
     , Element.width Element.fill
     , Element.paddingXY 100 25
     , Element.spacing 50
-    ] 
-    [ viewContainer model 
-        { borderColor = Palette.primaryLight
-        , title = "Topics" 
-        , addButtonColor = Palette.secondaryDark
-        }
-    ]
+    ] (viewData model)
 
-viewContainer : Model -> Config -> Element Msg
-viewContainer model config =
-    Element.column
-      [ Background.color config.borderColor
-        , Element.height Element.fill
-        , Element.width Element.fill
-        , Border.shadow {
-            offset = ( 2.0, 2.0 )
-          , size = 2.0
-          , blur = 4.0
-          , color = Element.rgba 0.2 0.2 0.2 0.5
-          }
-        , Element.padding 16
-      ]  
-      [ viewContainerTitleRow model config
-      , viewContainerBody model config
-      ]
- 
-
-viewContainerTitleRow : Model -> Config -> Element Msg
-viewContainerTitleRow model config =
-  Element.row 
-    [ Element.height (Element.px 48)
-    , Element.width Element.fill
-    , Element.alignTop
-    ]
-    [ Element.el
-      [ Element.centerY
-      , Element.centerX
-      , Fonts.titleSize
-      , Font.medium
-      , Palette.whiteFont
-      ] ( Element.text config.title )
-    , Input.button
-      [ Background.color config.addButtonColor
-      , Border.shadow
-        { offset = ( 2.0, 2.0 )
-        , size = 1.0
-        , blur = 4.0
-        , color = Element.rgba 0.2 0.2 0.2 0.5
-        }
-      , Element.centerY
-      , Element.alignRight
-      , Border.rounded 100
-      , Element.moveDown 1.5
-      , Palette.whiteFont
-      ]
-      { onPress = Just AddTopic
-      , label = Element.html ( Html.i [ class "material-icons" ] [ Html.text "add" ] )
-      }
-    ]
-
-
-viewContainerBody : Model -> Config -> Element Msg
-viewContainerBody model config =
-  case model.topics of
-    Loading -> Spinner.view model
-    Errored httpError -> viewError httpError
-    Loaded _ -> viewTopicsBody model
-    _ -> Element.none
-
-viewTopicsBody : Model -> Element Msg
-viewTopicsBody model =
-  Element.row
-    [ Element.height (Element.px 48)
-    , Element.width Element.fill
-    , Element.centerY
-    , Element.centerX
-    , Element.moveUp 48.0
-    ]
-    [ Element.el
-      [ Element.alignLeft
-      , Palette.whiteFont
-      , Font.semiBold
-      , Events.onClick <| Clicked Left 
-      , Element.pointer
-      ] (Element.html ( 
-        Html.i 
-          [ class "material-icons" 
-          , Attrs.style "font-size" "3rem"
-          ] [ Html.text "chevron_left" ] ) )
-    , Element.el 
-      [ Element.centerX
-      , Palette.whiteFont
-      , Font.size 24
-      , Font.medium 
-      ] (viewTopics model)
-    , Element.el
-      [ Element.alignRight
-      , Palette.whiteFont
-      , Font.semiBold
-      , Element.pointer
-      , Events.onClick <| Clicked Right
-      ] (Element.html ( 
-        Html.i 
-          [ class "material-icons" 
-          , Attrs.style "font-size" "3rem"
-          ] [ Html.text "chevron_right" ] ) ) 
-    ]
-
-viewTopic : TopicPresenter -> Element Msg
-viewTopic topicPresenter =
-  case topicPresenter of
-    TopicPresenter _ 0 _ -> Element.text "You don't have any topics yet."
-    TopicPresenter current l list -> Element.text (viewTopicTitle <| TopicPresenter current l list)
-
-viewTopics : Model -> Element Msg
+viewData : Model -> List (Element Msg)
+viewData model =
+  case model.currentlyViewing of
+    Topics -> viewTopics model
+    Decks -> [ Element.text "Hello. There should be decks here." ]
+    
+viewTopics : Model -> List (Element Msg)
 viewTopics model =
-  RequestStatus.viewResource model.topics model viewError viewTopic
+  case model.topics of
+    NotRequested -> [ Element.none ]
+    Loading -> [ Spinner.view model ]
+    Loaded topics -> viewTopicList topics
+    Errored error -> [ viewError error ]
 
-viewTopicTitle : TopicPresenter -> String
-viewTopicTitle (TopicPresenter current length list) =
-  case List.drop current list of
-    head :: _ -> head.topic
-    _ -> 
-      Debug.log ("This should never happen")
-      ""
+viewTopicList : List Topic -> List (Element Msg)
+viewTopicList topics =
+  case topics of
+    [] -> [ Element.text "You don't have any topics yet."]
+    _ ->
+      List.map viewTopic topics
+
+viewTopic : Topic -> Element Msg
+viewTopic data =
+  Element.el
+    [ Background.color Palette.primary
+    , Element.width (Element.px 320)
+    , Element.height (Element.px 320)
+    , Border.shadow {
+      offset = ( 2.0, 2.0 )
+    , size = 2.0
+    , blur = 4.0
+    , color = Element.rgba 0.2 0.2 0.2 0.5
+    }
+    , Palette.whiteFont
+    , Font.size 24
+    , Font.regular
+    , Element.padding 16
+    ] 
+    ( Element.el [ Element.centerY, Element.centerX ] ( Element.text data.topic ) )
 
 viewError : Http.Error -> Element Msg
 viewError httpError =
@@ -195,14 +106,11 @@ viewError httpError =
     ] (Element.text "Could not load topics")
 
 -- UPDATE
-type Direction = Right | Left
-
 type Msg
   = SubmitForm
   | Animate Animation.Msg
   | AddTopic
   | TopicsReceived (Result Http.Error (List Topic))
-  | Clicked Direction
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -211,22 +119,6 @@ update msg model =
       ( model, Cmd.none )
     AddTopic ->
       ( model, Cmd.none )
-    Clicked direction ->
-      let
-          operation =
-            case direction of
-              Right -> (+)
-              Left -> (-)
-          newTopics =
-            case model.topics of
-              Loaded presenter ->
-                case presenter of
-                  TopicPresenter _ 0 _ -> model.topics
-                  TopicPresenter current length list ->
-                    Loaded <| (changeCurrentTopic operation current length) length list
-              _ -> model.topics
-      in
-      ( { model | topics = newTopics }, Cmd.none )
     TopicsReceived (Ok topics) ->
       ( updateTopics model topics, Cmd.none )
     TopicsReceived (Err error) ->
@@ -260,21 +152,6 @@ apiUrl : String
 apiUrl =
   "http://localhost:4000/api"
 
-changeCurrentTopic : (Int -> Int -> Int) -> Int -> Int -> (Int -> List Topic -> TopicPresenter)
-changeCurrentTopic subtractOrAdd current length =
-  case subtractOrAdd current 1 of
-    newPosition ->
-      if newPosition < 0 then
-        TopicPresenter (length - 1)
-      else if newPosition == length then
-        TopicPresenter 0
-      else 
-        TopicPresenter newPosition
-
 updateTopics : Model -> List Topic -> Model
 updateTopics model topics =
-  let
-      newTopics =
-        TopicPresenter 0 (List.length topics) topics
-  in
-  { model | topics = Loaded newTopics }
+  { model | topics = Loaded topics }

@@ -16,6 +16,7 @@ viewResource : Status error success -> LoadingView r -> (error -> Element msg) -
 viewResource status loadingView errorViewFunction successViewFunction =
   case status of
     NotRequested -> Element.none
-    Loading -> Spinner.view loadingView
+    -- Loading -> Spinner.view loadingView
+    Loading -> Element.none
     Loaded success -> successViewFunction success
     Errored error -> errorViewFunction error

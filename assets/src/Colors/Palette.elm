@@ -1,31 +1,32 @@
 module Colors.Palette exposing (..)
 
+import Css exposing (rgb)
 import Element
 import Element.Font as Font
 
-primary : Element.Color
+primary : Css.Color
 primary =
-  Element.rgb255 103 58 183
+  rgb 103 58 183
 
-primaryLight : Element.Color
+primaryLight : Css.Color
 primaryLight =
-  Element.rgb255 154 103 234
+  rgb 154 103 234
 
-primaryDark : Element.Color
+primaryDark : Css.Color
 primaryDark =
-  Element.rgb255 50 11 134
+  rgb 50 11 134
 
-secondary : Element.Color
+secondary : Css.Color
 secondary =
-  Element.rgb255 77 208 225
+  rgb 77 208 225
 
-secondaryLight : Element.Color
+secondaryLight : Css.Color
 secondaryLight =
-  Element.rgb255 136 255 255
+  rgb 136 255 255
 
-secondaryDark : Element.Color
+secondaryDark : Css.Color
 secondaryDark = 
-  Element.rgb255 0 159 175
+  rgb 0 159 175
 
 whiteFont : Element.Attribute msg
 whiteFont =

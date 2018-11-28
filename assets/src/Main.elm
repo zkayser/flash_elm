@@ -4,15 +4,17 @@ import Browser
 import Browser.Events
 import Browser.Navigation as Nav
 import Colors.Palette as Palette
+import Css exposing (..)
+import Css.Global as Global exposing (global)
 import Element exposing (Element, Device, DeviceClass(..))
 import Element.Background as Background
 import Element.Events as Events
 import Element.Font as Font
 import Fonts
 import Home.Page
-import Html exposing (..)
-import Html.Events exposing (onClick)
-import Html.Attributes exposing (class)
+import Html.Styled exposing (..)
+import Html.Styled.Events exposing (onClick)
+import Html.Styled.Attributes exposing (class, css)
 import Topics.Request as Request
 import Url exposing (Url)
 
@@ -58,58 +60,90 @@ view model =
   let
       viewPage body =
         { title = "Flash"
-        , body = body
+        , body = List.map toUnstyled ( body ++ globalStyles )
         }
   in
   case model.level of
     Redirect ->
-      viewPage [ layout model (\_ _ -> Element.none) (\_ -> Ignored) {} ] 
+      viewPage [ layout model (\_ _ -> div [] []) (\_ -> Ignored) {} ] 
     Home homeModel ->
       viewPage [ layout model (Home.Page.view) HomeMsg homeModel ]
 
-layout : Model -> (subModel -> DeviceClass -> Element msg) -> (msg -> Msg) -> subModel -> Html Msg
+globalStyles : List (Html Msg)
+globalStyles =
+  [ global
+    [ Global.html
+      [ Css.minWidth (Css.pct 100)
+      , Css.minHeight (Css.pct 100)
+      ]
+    , Global.body
+      [ Css.margin (Css.px 0) ]
+    ]
+  ]
+
+layout : Model -> (subModel -> DeviceClass -> Html msg) -> (msg -> Msg) -> subModel -> Html Msg
 layout model pageView toMsg subModel =
-  Element.layout 
-  []
-  ( Element.column [ Element.width Element.fill, Element.spacing 16 ] 
-      [ viewNavBar model 
-      , Element.map toMsg (pageView subModel model.deviceClass)
-      ] 
-  )
-
-viewNavBar : Model -> Element Msg
-viewNavBar model =
-  Element.row
-    [ Element.alignTop
-    , Background.color Palette.primary
-    , Element.width Element.fill
-    , Element.height (Element.px 80)
-    , Element.padding 16
+  header 
+    [ css
+      [ displayFlex
+      , width (pct 100)
+      , backgroundColor Palette.primary
+      , height (Css.rem 4)
+      , alignItems center
+      , justifyContent center
+      , color (rgb 255 255 255)
+      , fontWeight bolder
+      , fontSize (Css.rem 2.5)
+      , fontFamily sansSerif
+      , textTransform capitalize
+      , boxShadow4 (px 0) (px 1) (px 10) (hex "999")
+      ]
     ]
-    [ Element.el
-      [ Element.centerX
-      , Element.centerY
-      , Palette.whiteFont
-      , Fonts.titleSize
-      , Font.medium  
-      ] ( Element.text "Flash")
-    , viewNavBarLinks model
-    ]
+    [ text "Flash" ]
 
-viewNavBarLinks : Model -> Element Msg
-viewNavBarLinks model =
-  case model.deviceClass of
-    Phone ->
-      Element.el
-        [ Element.alignRight
-        , Element.centerY
-        , Palette.whiteFont
-        , Fonts.titleSize
-        , Font.bold
-        , Events.onClick ToggleNavDropdown
-        ] (Element.html (i [ class "material-icons"] [ Html.text "menu"] ))
-    _ -> 
-      Element.none
+-- layout : Model -> (subModel -> DeviceClass -> Element msg) -> (msg -> Msg) -> subModel -> Html Msg
+-- layout model pageView toMsg subModel =
+--   Element.layout 
+--   []
+--   ( Element.column [ Element.width Element.fill, Element.spacing 16 ] 
+--       [ viewNavBar model 
+--       , Element.map toMsg (pageView subModel model.deviceClass)
+--       ] 
+--   )
+
+-- viewNavBar : Model -> Element Msg
+-- viewNavBar model =
+--   Element.row
+--     [ Element.alignTop
+--     , Background.color Palette.primary
+--     , Element.width Element.fill
+--     , Element.height (Element.px 80)
+--     , Element.padding 16
+--     ]
+--     [ Element.el
+--       [ Element.centerX
+--       , Element.centerY
+--       , Palette.whiteFont
+--       , Fonts.titleSize
+--       , Font.medium  
+--       ] ( Element.text "Flash")
+--     , viewNavBarLinks model
+--     ]
+
+-- viewNavBarLinks : Model -> Element Msg
+-- viewNavBarLinks model =
+--   case model.deviceClass of
+--     Phone ->
+--       Element.el
+--         [ Element.alignRight
+--         , Element.centerY
+--         , Palette.whiteFont
+--         , Fonts.titleSize
+--         , Font.bold
+--         , Events.onClick ToggleNavDropdown
+--         ] (Element.html (i [ class "material-icons"] [ Html.Styled.text "menu"] ))
+--     _ -> 
+--       Element.none
 
 -- UPDATE
 

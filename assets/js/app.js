@@ -7,5 +7,4 @@ import('../src/Main.elm')
         height: window.innerHeight
       }
     });
-    console.log(`Width: ${window.innerWidth} and height: ${window.innerHeight}`)
   });

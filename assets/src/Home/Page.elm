@@ -6,20 +6,16 @@ import Colors.Palette as Palette
 import Css exposing (..)
 import Css.Animations exposing (Keyframes)
 import Css.Transitions as Transitions exposing (transition)
-import Element exposing (Element, DeviceClass(..))
 import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (css, class)
 import Http
-import Topics.Request as Request
+import Topics.Request as Request exposing (Topic(..))
 import RequestStatus exposing(Status(..))
 import Views.Spinner as Spinner
 
 type Msg
   = None
   | TopicsReceived (Result Http.Error (List Topic))
-
-type alias Topic =
-  { topic : String }
 
 type alias Model =
   { navKey : Nav.Key
@@ -49,7 +45,7 @@ viewTopics model topics =
   div [ class "grid-container" ] (List.map (viewTopic model) topics)
 
 viewTopic : Model -> Topic -> Html Msg
-viewTopic model topic =
+viewTopic model (Topic topic) =
   div
     [ css
       [ displayFlex
@@ -71,9 +67,10 @@ viewTopic model topic =
           , color (Css.rgb 255 255 255)
           ]
         ]
-        [ text topic.topic ]
+        [ text topic.title ]
     ]
 
+-- UPDATE
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
@@ -83,6 +80,7 @@ update msg model =
     TopicsReceived (Err error) ->
       ( { model | topics = Errored error }, Cmd.none )
 
+-- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.none

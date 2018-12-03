@@ -1,14 +1,28 @@
 module Topics.Request exposing (..)
 
+import Decks.Decoder as Deck exposing (Deck)
 import Http
 import Json.Decode as Decode exposing (Decoder)
+import Json.Decode.Pipeline exposing (required)
 
-type alias Topic = { topic : String }
+type Topic =
+  Topic Data
+
+type alias Data =
+  { title : String
+  , id : Int
+  , subTopics : List Topic
+  , decks : List Deck
+  }
 
 topicDecoder : Decoder Topic
 topicDecoder =
-  Decode.map Topic
-    (Decode.field "topic" Decode.string)
+  Decode.succeed Data
+    |> required "title" Decode.string
+    |> required "id" Decode.int
+    |> required "sub_topics" (Decode.list (Decode.lazy (\_ -> topicDecoder)))
+    |> required "decks" (Decode.list Deck.decoder)
+    |> Decode.map Topic
 
 topicListDecoder : Decoder (List Topic)
 topicListDecoder =

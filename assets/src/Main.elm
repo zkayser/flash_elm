@@ -15,6 +15,7 @@ import Home.Page
 import Html.Styled exposing (..)
 import Html.Styled.Events exposing (onClick)
 import Html.Styled.Attributes exposing (class, css)
+import Json.Decode as Json
 import Styles exposing (globalStyles)
 import Topics.Request as Request
 import Url exposing (Url)
@@ -22,11 +23,6 @@ import Url exposing (Url)
 type alias Model =
   { navBarDropdownState : DropdownState
   , level : ModelLevel
-  }
-
-type alias WindowSize =
-  { width : Int
-  , height : Int
   }
 
 type ModelLevel
@@ -37,14 +33,10 @@ type DropdownState
   = Open
   | Closed
 
-type alias Flags = WindowSize
-
 -- MODEL
-
-init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init : Json.Value -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url navKey =
   let
-    device = Element.classifyDevice flags
     model =
       { navBarDropdownState = Closed
       , level = ( Home <| Home.Page.initialModel navKey)
@@ -80,16 +72,13 @@ viewHeader model =
 
 type Msg
   = NoOp
-  | Ignored
   | ToggleNavDropdown
-  | WindowResize Int Int
   | HomeMsg Home.Page.Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case (msg, model.level) of
     ( NoOp, _ ) -> ( model, Cmd.none )
-    ( Ignored, _ ) -> ( model, Cmd.none )
     ( ToggleNavDropdown, _ ) ->
       let
           newDropdownState =
@@ -130,8 +119,8 @@ onUrlChange url =
   NoOp
 
 main =
-  Browser.application {
-      init = init
+  Browser.application
+    { init = init
     , view = view
     , update = update
     , subscriptions = subscriptions

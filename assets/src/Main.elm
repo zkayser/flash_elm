@@ -20,8 +20,7 @@ import Topics.Request as Request
 import Url exposing (Url)
 
 type alias Model =
-  { deviceClass : DeviceClass
-  , navBarDropdownState : DropdownState
+  { navBarDropdownState : DropdownState
   , level : ModelLevel
   }
 
@@ -47,8 +46,7 @@ init flags url navKey =
   let
     device = Element.classifyDevice flags
     model =
-      { deviceClass = device.class
-      , navBarDropdownState = Closed
+      { navBarDropdownState = Closed
       , level = ( Home <| Home.Page.initialModel navKey)
       }
   in
@@ -100,11 +98,6 @@ update msg model =
               Closed -> Open
       in
       ( { model | navBarDropdownState = newDropdownState }, Cmd.none )
-    ( WindowResize width height, _ ) ->
-      let
-          windowSize = { width = width, height = height }
-      in
-      ( { model | deviceClass = getDeviceClass windowSize }, Cmd.none )
     ( HomeMsg subMsg, Home subModel ) ->
       Home.Page.update subMsg subModel
         |> updateWith Home HomeMsg model
@@ -119,9 +112,7 @@ updateWith toModelLevel toMsg model ( subModel, subCmd ) =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ Browser.Events.onResize WindowResize
-    , subscriptionsForPage model
-    ]
+    [ subscriptionsForPage model ]
 
 subscriptionsForPage : Model -> Sub Msg
 subscriptionsForPage model =
@@ -137,11 +128,6 @@ onUrlRequest request =
 onUrlChange : Url -> Msg
 onUrlChange url =
   NoOp
-
--- UTILITY FUNCTIONS
-getDeviceClass : WindowSize -> DeviceClass
-getDeviceClass =
-  Element.classifyDevice >> .class
 
 main =
   Browser.application {

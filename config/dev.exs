@@ -17,7 +17,7 @@ config :flash_elm, FlashElmWeb.Endpoint,
       "watch",
       "./assets/js/app.js",
       "--out-dir",
-      "priv/static/js"
+      "priv/static/js",
     ]
   ]
 

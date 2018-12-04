@@ -6,23 +6,24 @@ import Colors.Palette as Palette
 import Css exposing (..)
 import Css.Animations exposing (Keyframes)
 import Css.Transitions as Transitions exposing (transition)
+import Home.Types exposing (Msg(..), Model)
 import Html.Styled exposing (..)
 import Html.Styled.Attributes as Attrs exposing (css, class)
 import Http
-import Topics.Request as Request exposing (Topic(..))
 import RequestStatus exposing(Status(..))
+import Topics.Request as Request exposing (Topic(..))
 import Views.Spinner as Spinner
 
-type Msg
-  = None
-  | TopicsReceived (Result Http.Error (List Topic))
-  | Animate Animation.Msg
+--type Msg
+--  = None
+--  | TopicsReceived (Result Http.Error (List Topic))
+--  | Animate Animation.Msg
 
-type alias Model =
-  { navKey : Nav.Key
-  , topics : Status Http.Error (List Topic)
-  , spinner : Animation.State
-  }
+--type alias Model =
+--  { navKey : Nav.Key
+--  , topics : Status Http.Error (List Topic)
+--  , spinner : Animation.State
+--  }
 
 initialModel : Nav.Key -> Model
 initialModel navKey =

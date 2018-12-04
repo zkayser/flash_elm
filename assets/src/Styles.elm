@@ -22,7 +22,7 @@ navBar =
   [ displayFlex
   , width (pct 100)
   , backgroundColor Palette.primary
-  , height (Css.rem 4)
+  , height (Css.rem 5)
   , alignItems center
   , justifyContent center
   , color (rgb 255 255 255)

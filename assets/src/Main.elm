@@ -12,6 +12,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Fonts
 import Home.Page
+import Home.Types
 import Html.Styled exposing (..)
 import Html.Styled.Events exposing (onClick)
 import Html.Styled.Attributes exposing (class, css)
@@ -27,7 +28,7 @@ type alias Model =
 
 type ModelLevel
   = Redirect
-  | Home Home.Page.Model
+  | Home Home.Types.Model
 
 type DropdownState
   = Open
@@ -73,7 +74,7 @@ viewHeader model =
 type Msg
   = NoOp
   | ToggleNavDropdown
-  | HomeMsg Home.Page.Msg
+  | HomeMsg Home.Types.Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =

@@ -7,7 +7,7 @@ import Css exposing (..)
 import Css.Animations exposing (Keyframes)
 import Css.Transitions as Transitions exposing (transition)
 import Html.Styled exposing (..)
-import Html.Styled.Attributes exposing (css, class)
+import Html.Styled.Attributes as Attrs exposing (css, class)
 import Http
 import Topics.Request as Request exposing (Topic(..))
 import RequestStatus exposing(Status(..))
@@ -16,6 +16,7 @@ import Views.Spinner as Spinner
 type Msg
   = None
   | TopicsReceived (Result Http.Error (List Topic))
+  | Animate Animation.Msg
 
 type alias Model =
   { navKey : Nav.Key
@@ -35,7 +36,14 @@ initialModel navKey =
 view : Model -> Html Msg
 view model =
   case model.topics of
-    Loading -> div [] [text "your topics are loading..."]
+    Loading ->
+      div
+      (List.concat
+        [ (List.map Attrs.fromUnstyled <| Animation.render model.spinner)
+        , Spinner.styles
+        ]
+      )
+      []
     Loaded topics -> viewTopics model topics
     Errored error -> div [] [ text "there was an error fetching topics" ]
     _ -> div [] []
@@ -79,11 +87,13 @@ update msg model =
       ( { model | topics = Loaded topics }, Cmd.none )
     TopicsReceived (Err error) ->
       ( { model | topics = Errored error }, Cmd.none )
+    Animate animMsg ->
+      ( { model | spinner = Spinner.update model animMsg }, Cmd.none )
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+  Sub.batch [ Animation.subscription Animate [ model.spinner ] ]
 
 -- REQUEST
 fetchTopics : Cmd Msg

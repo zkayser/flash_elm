@@ -14,17 +14,6 @@ import RequestStatus exposing(Status(..))
 import Topics.Request as Request exposing (Topic(..))
 import Views.Spinner as Spinner
 
---type Msg
---  = None
---  | TopicsReceived (Result Http.Error (List Topic))
---  | Animate Animation.Msg
-
---type alias Model =
---  { navKey : Nav.Key
---  , topics : Status Http.Error (List Topic)
---  , spinner : Animation.State
---  }
-
 initialModel : Nav.Key -> Model
 initialModel navKey =
   { navKey = navKey
@@ -74,6 +63,12 @@ viewTopic model (Topic topic) =
           , fontSize (Css.rem 1.5)
           , backgroundColor Palette.primary
           , color (Css.rgb 255 255 255)
+          , hover
+            [ height (Css.pct 100)
+            , width (Css.pct 100)
+            , borderRadius (Css.pct 100)
+            , cursor pointer
+            ]
           ]
         ]
         [ text topic.title ]

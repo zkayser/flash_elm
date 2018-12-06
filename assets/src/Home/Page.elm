@@ -66,7 +66,7 @@ viewTopic model (Topic topic) =
           , color (Css.rgb 255 255 255)
           , topicCardTransitions
           , hover <|
-            [ transform <| scale 1.05
+            [ transform <| scale 1.2
             , borderRadius (Css.pct 100)
             , cursor pointer
             , opacity <| Css.num 0.5

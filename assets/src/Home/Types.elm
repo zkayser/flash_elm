@@ -17,4 +17,5 @@ type alias Model =
   , spinner : Animation.State
   }
 
-
+type View
+  = TopicList

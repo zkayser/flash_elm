@@ -4,9 +4,10 @@ import Animation exposing (px, turn)
 import Browser.Navigation as Nav
 import Colors.Palette as Palette
 import Css exposing (..)
-import Css.Animations exposing (Keyframes)
+import Css.Animations as Animations exposing (Keyframes)
 import Css.Transitions as Transitions exposing (transition)
 import Home.Types exposing (Msg(..), Model)
+import Html
 import Html.Styled exposing (..)
 import Html.Styled.Attributes as Attrs exposing (css, class)
 import Http
@@ -63,15 +64,27 @@ viewTopic model (Topic topic) =
           , fontSize (Css.rem 1.5)
           , backgroundColor Palette.primary
           , color (Css.rgb 255 255 255)
-          , hover
-            [ height (Css.pct 100)
-            , width (Css.pct 100)
+          , topicCardTransitions
+          , hover <|
+            [ transform <| scale 1.05
             , borderRadius (Css.pct 100)
             , cursor pointer
+            , opacity <| Css.num 0.5
+            , property "filter" "drop-shadow(0 0 1rem black)"
+            , topicCardTransitions
             ]
           ]
         ]
         [ text topic.title ]
+    ]
+
+topicCardTransitions : Style
+topicCardTransitions =
+  transition
+    [ Transitions.filter 1000
+    , Transitions.transform 1000
+    , Transitions.borderRadius 1000
+    , Transitions.opacity 1000
     ]
 
 -- UPDATE
@@ -95,3 +108,16 @@ subscriptions model =
 fetchTopics : Cmd Msg
 fetchTopics =
   Request.fetchTopics TopicsReceived
+
+-- HELPERS
+animToStyledAttrs : List (Html.Attribute msg) -> List (Attribute msg)
+animToStyledAttrs unstyledAttrs =
+  List.map Attrs.fromUnstyled unstyledAttrs
+
+withAnimation : Animation.State -> List (Attribute msg) -> List (Attribute msg)
+withAnimation animation otherStyles =
+  (List.concat
+    [ Animation.render animation |> animToStyledAttrs
+    , otherStyles
+    ]
+  )

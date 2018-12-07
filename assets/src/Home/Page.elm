@@ -6,10 +6,11 @@ import Colors.Palette as Palette
 import Css exposing (..)
 import Css.Animations as Animations exposing (Keyframes)
 import Css.Transitions as Transitions exposing (transition)
-import Home.Types exposing (Msg(..), Model)
+import Home.Types exposing (Msg(..), Menu(..), MenuActions(..), Model)
 import Html
 import Html.Styled exposing (..)
 import Html.Styled.Attributes as Attrs exposing (css, class)
+import Html.Styled.Events exposing (onMouseEnter, onMouseLeave)
 import Http
 import RequestStatus exposing(Status(..))
 import Topics.Request as Request exposing (Topic(..))
@@ -20,6 +21,7 @@ initialModel navKey =
   { navKey = navKey
   , topics = Loading
   , spinner = Spinner.init
+  , menuViewer = menuViewer None
   }
 
 
@@ -55,8 +57,11 @@ viewTopic model (Topic topic) =
     ]
     [  div
         [ class "card-panel animated-card"
+        , onMouseEnter <| Present <| TopicMenu (Topic topic)
+        , onMouseLeave <| Close <| TopicMenu (Topic topic)
         , css
           [ displayFlex
+          , flexDirection column
           , justifyContent center
           , alignItems center
           , height (Css.rem 20)
@@ -75,7 +80,9 @@ viewTopic model (Topic topic) =
             ]
           ]
         ]
-        [ text topic.title ]
+        [ text topic.title
+        , viewTopicCardMenu model (TopicMenu <| Topic topic)
+        ]
     ]
 
 topicCardTransitions : Style
@@ -87,15 +94,33 @@ topicCardTransitions =
     , Transitions.opacity 1000
     ]
 
+viewTopicCardMenu : Model -> Menu -> Html Msg
+viewTopicCardMenu model menu =
+  case model.menuViewer menu of
+    Show _ -> viewMenu model menu
+    Hide -> text ""
+
+viewMenu : Model -> Menu -> Html Msg
+viewMenu model menu =
+  div [ ] [ text "Here lies a menu" ]
+
 -- UPDATE
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
-    None -> ( model, Cmd.none )
+    Noop -> ( model, Cmd.none )
     TopicsReceived (Ok topics) ->
       ( { model | topics = Loaded topics }, Cmd.none )
     TopicsReceived (Err error) ->
       ( { model | topics = Errored error }, Cmd.none )
+    Present menuToView ->
+      let
+        newMenuViewer =
+          menuViewer menuToView
+      in
+      ( { model | menuViewer = newMenuViewer }, Cmd.none )
+    Close _ ->
+      ( { model | menuViewer = menuViewer None }, Cmd.none )
     Animate animMsg ->
       ( { model | spinner = Spinner.update model animMsg }, Cmd.none )
 
@@ -121,3 +146,10 @@ withAnimation animation otherStyles =
     , otherStyles
     ]
   )
+
+menuViewer : Menu -> Menu -> MenuActions
+menuViewer menu1 menu2 =
+  case menu1 of
+    None -> Hide
+    _ ->
+      if menu1 == menu2 then Show menu1 else Hide

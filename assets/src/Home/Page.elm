@@ -4,7 +4,7 @@ import Animation exposing (px, turn)
 import Browser.Navigation as Nav
 import Colors.Palette as Palette
 import Css exposing (..)
-import Css.Animations as Animations exposing (Keyframes)
+import Css.Animations as Animations exposing (Keyframes, keyframes)
 import Css.Transitions as Transitions exposing (transition)
 import Home.Types exposing (Msg(..), Menu(..), MenuActions(..), Model)
 import Html
@@ -74,7 +74,7 @@ viewTopic model (Topic topic) =
             [ transform <| scale 1.2
             , borderRadius (Css.pct 100)
             , cursor pointer
-            , opacity <| Css.num 0.5
+            --, opacity <| Css.num 0.5
             , property "filter" "drop-shadow(0 0 1rem black)"
             , topicCardTransitions
             ]
@@ -91,7 +91,7 @@ topicCardTransitions =
     [ Transitions.filter 1000
     , Transitions.transform 1000
     , Transitions.borderRadius 1000
-    , Transitions.opacity 1000
+    --, Transitions.opacity 1000
     ]
 
 viewTopicCardMenu : Model -> Menu -> Html Msg
@@ -102,7 +102,75 @@ viewTopicCardMenu model menu =
 
 viewMenu : Model -> Menu -> Html Msg
 viewMenu model menu =
-  div [ ] [ text "Here lies a menu" ]
+  div
+  [ css
+    [ border3 (Css.px 1) solid (Palette.secondary)
+    , width <| Css.pct 120
+    , height <| Css.pct 58
+    , borderRadius4 Css.zero Css.zero (Css.rem 50) (Css.rem 50)
+    , transform <| translateY <| Css.rem 4
+    , overflow hidden
+    , opacity <| Css.num 0
+    , animationName (
+        keyframes
+          [ ( 0, [ Animations.opacity <| Css.num 0, Animations.transform [ scaleY 0 ] ] )
+          , ( 50, [ Animations.opacity <| Css.num 0, Animations.transform [ scaleY 0.5, translateY <| Css.rem 2 ] ] )
+          , ( 100, [ Animations.opacity <| Css.num 1, Animations.transform [ scaleY 1, translateY <| Css.rem 4] ] )
+          ]
+      )
+    , property "animation-delay" "0ms"
+    , property "animation-duration" "1000ms"
+    , property "animation-fill-mode" "forwards"
+    ]
+  ]
+  [ div
+    [ css
+      [ backgroundColor Palette.secondary
+      , position absolute
+      , width <| Css.pct 25
+      , height <| Css.pct 100
+      , displayFlex
+      , justifyContent center
+      ]
+    ]
+    [ text "+" ]
+  , div
+    [ css
+      [ backgroundColor Palette.secondaryLight
+      , position absolute
+      , width <| Css.pct 25
+      , height <| Css.pct 100
+      , right <| Css.pct 50
+      , displayFlex
+      , justifyContent center
+      ]
+    ]
+    [ text "-" ]
+  , div
+    [ css
+      [ backgroundColor Palette.secondary
+      , position absolute
+      , width <| Css.pct 25
+      , height <| Css.pct 100
+      , right <| Css.pct 25
+      , displayFlex
+      , justifyContent center
+      ]
+    ]
+    [ text "+" ]
+  , div
+    [ css
+      [ backgroundColor Palette.secondaryLight
+      , position absolute
+      , width <| Css.pct 25
+      , height <| Css.pct 100
+      , right <| Css.pct 0
+      , displayFlex
+      , justifyContent center
+      ]
+    ]
+    [ text "-" ]
+  ]
 
 -- UPDATE
 update : Msg -> Model -> ( Model, Cmd Msg )
